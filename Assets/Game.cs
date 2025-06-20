@@ -28,6 +28,10 @@ public class Game : MonoBehaviour
     private float _ballSpeed = 10.0f;
     private float _ballSpeedAngle = 0.25f * Mathf.PI;  //初始角度为pi/4
     
+    // 碰撞时设置为true，防止重复触发事件
+    private bool _isLeftBlockHit = false;
+    private bool _isRightBlockHit = false;
+    
     // Start is called before the first frame update
     void Start()
     {
@@ -47,8 +51,68 @@ public class Game : MonoBehaviour
         ControlPanel(ref _rightBlock, ref _rightMoveSpeed, KeyCode.UpArrow, KeyCode.DownArrow);
         CalculateBallMove();
         CalculateBallCollision();
+        BallHitPanel();
     }
 
+    private bool IsHitPanel(Vector2 ballPosition, Vector3 blockPosition, float pixelScale)
+    {
+        return ballPosition.x < blockPosition.x + 10 / pixelScale
+               && ballPosition.x > blockPosition.x - 10 / pixelScale
+               && ballPosition.y < blockPosition.y + 50 / pixelScale
+               && ballPosition.y > blockPosition.y - 50 / pixelScale;
+    }
+    
+    private void BallHitPanel()
+    {
+        Vector2 ballPosition = _ball.transform.position;
+        Vector2 leftBlockPosition = _leftBlock.transform.position;
+        Vector2 rightBlockPosition = _rightBlock.transform.position;
+        float speedY = Mathf.Cos(_ballSpeedAngle) * _ballSpeed/_pixelScale;
+        float speedX = Mathf.Sin(_ballSpeedAngle) * _ballSpeed/_pixelScale;
+        
+        //左边挡板碰撞
+        //挡板的宽高分别是 20、100像素，所以计算碰撞区域时，按照宽高一半进行计算
+        if (IsHitPanel(ballPosition, leftBlockPosition, _pixelScale))
+        {
+#if DEBUG
+            Debug.Log("Hit left block!");
+#endif
+            if(!_isLeftBlockHit)
+            {
+                if (speedX < 0)
+                {
+                    _ballSpeedAngle = (leftBlockPosition.y - ballPosition.y) / 50.0f * _pixelScale + Mathf.PI / 2.0f;
+                }
+                _isLeftBlockHit = true;
+            }
+            else
+            {
+                _isLeftBlockHit = false;
+            }
+        }
+
+        
+        //挡板的宽高分别是 20、100像素，所以计算碰撞区域时，按照宽高一半进行计算
+        if (IsHitPanel(ballPosition, rightBlockPosition, _pixelScale))
+        {
+#if DEBUG
+            Debug.Log("Hit right block!");
+#endif
+            if (!_isRightBlockHit)
+            {
+                if (speedX > 0)
+                {
+                    _ballSpeedAngle = Mathf.PI * 3 / 2 - (rightBlockPosition.y - ballPosition.y) / 50.0f * _pixelScale;
+                }
+                _isRightBlockHit = true;
+            }
+        }
+        else
+        {
+            _isRightBlockHit = false;
+        }
+    }
+    
     private void CalculateBallMove()
     {
         //计算小球移动速度——极坐标
